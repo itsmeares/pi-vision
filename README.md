@@ -1,6 +1,6 @@
 # pi-vision
 
-A [pi](https://github.com/badlogic/pi) extension that gives a **text-only model** (e.g. `q38s`) delegated vision: it calls a `vision` tool, an isolated `codex exec` (GPT-5.6 Luna, low reasoning) looks at the images, and only the final **text** answer comes back. The primary model never sees pixels.
+A [pi](https://github.com/earendil-works/pi) extension that gives a **text-only model** (e.g. `q38s`) delegated vision: it calls a `vision` tool, an isolated `codex exec` (GPT-5.6 Luna, low reasoning) looks at the images, and only the final **text** answer comes back. The primary model never sees pixels.
 
 ```
 q38s (text-only) ── vision(images, question) ──▶ codex exec (isolated) ──▶ GPT-5.6 Luna
