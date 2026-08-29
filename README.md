@@ -1,64 +1,58 @@
 # pi-vision
 
-Delegated vision for [Pi](https://github.com/earendil-works/pi). `pi-vision` registers a `vision` tool so a text-only primary model can inspect local images without ever receiving pixels itself.
+Delegated vision for text-only [Pi](https://github.com/earendil-works/pi) models through an isolated Codex CLI worker.
+
+The primary model never receives image input. It calls a `vision` tool, Codex inspects the image, and only the final text answer is returned to Pi.
 
 ```text
-text-only Pi model
-      |
-      | vision(images, question)
-      v
-pi-vision extension
-      |
-      | isolated codex exec
-      v
+Pi model (text-only)
+        |
+        | vision(images, question)
+        v
+   pi-vision
+        |
+        | isolated codex exec
+        v
 GPT-5.6 Luna (low reasoning)
-      |
-      | concise text result
-      v
-text-only Pi model
+        |
+        | text only
+        v
+Pi model
 ```
 
-The delegate runs in a separate Codex environment with a fresh working directory, read-only sandboxing, no session persistence, and only the existing Codex authentication shared back in.
+## Install
 
-## Requirements
+From npm:
 
-- Pi with extension/package support
-- Codex CLI available as `codex`
-- Existing Codex login at `~/.codex/auth.json` (`codex login` if needed)
+```bash
+pi install npm:@itsmeares/pi-vision
+```
 
-No model or image support is required from the primary Pi model.
-
-## Install as a Pi package
-
-This repository is a Pi package. Install it globally once and the `vision` tool is available in Pi sessions across projects:
+From GitHub:
 
 ```bash
 pi install git:github.com/itsmeares/pi-vision
 ```
 
-For a private repository, use whichever Git URL your existing Git authentication can access, for example SSH:
+Restart Pi after installing the extension.
+
+## Requirements
+
+- Pi
+- Codex CLI available as `codex`
+- An existing Codex login at `~/.codex/auth.json`
+
+If needed, authenticate once with:
 
 ```bash
-pi install git:git@github.com:itsmeares/pi-vision
+codex login
 ```
 
-Update it later with:
-
-```bash
-pi update --extension git:github.com/itsmeares/pi-vision
-```
-
-Remove it with:
-
-```bash
-pi remove git:github.com/itsmeares/pi-vision
-```
-
-Pi package metadata lives in `package.json`; the extension itself remains in `.pi/extensions/delegated-vision.ts`, so the repository also works directly as a project-local development checkout.
+No vision support is required from the primary Pi model.
 
 ## Usage
 
-The model calls the tool when it needs visual information:
+The extension registers one tool:
 
 ```text
 vision({
@@ -67,71 +61,59 @@ vision({
 })
 ```
 
-The result returned to the primary model is text only.
+The model can call it whenever it needs to inspect a local image.
 
-Tool input:
+Supported input:
 
-- `images`: 1–4 local image paths, absolute or project-relative
-- Supported image types: jpg, jpeg, png, webp, gif, bmp
-- Maximum size: 10 MB per image
-- `question`: a focused question about the supplied image(s)
+- 1-4 images per call
+- absolute or project-relative paths
+- JPG, JPEG, PNG, WebP, GIF, BMP
+- up to 10 MB per image
 
-## How delegation works
+The tool returns concise plain text to the primary model.
 
-Each tool call:
+## Isolation
 
-1. Validates and resolves the image paths locally.
-2. Creates an isolated delegate home at `~/.codex/vision` if needed.
-3. Keeps only an `auth.json` symlink there, pointing at the normal `~/.codex/auth.json`.
-4. Creates a fresh temporary working directory.
-5. Runs an ephemeral, read-only `codex exec` with the requested image(s).
-6. Uses GPT-5.6 Luna with low reasoning by default.
-7. Captures only the delegate's final stdout and returns it to Pi.
-8. Removes the temporary working directory.
+Each delegated call runs with:
 
-The primary model remains text-only throughout the call.
+- a dedicated `CODEX_HOME` at `~/.codex/vision`
+- only a symlink to the existing `~/.codex/auth.json`
+- a fresh temporary working directory
+- `--ephemeral` session mode
+- a read-only Codex sandbox
+- no caller repository context
+- no normal Codex config, hooks, plugins, MCP configuration, or project instructions from the caller repo
+
+`OPENAI_API_KEY` and `CODEX_API_KEY` are removed from the child environment so the delegate uses the existing Codex login instead.
+
+The temporary working directory is deleted after every call.
 
 ## Configuration
 
-| Variable | Default | Purpose |
+| Variable | Default | Description |
 | --- | --- | --- |
-| `PI_VISION_MODEL` | `gpt-5.6-luna` | Delegate model |
-| `PI_VISION_EFFORT` | `low` | Codex reasoning effort |
-| `PI_VISION_TIMEOUT_MS` | `180000` | Per-call timeout |
-| `PI_VISION_CODEX` | `codex` | Codex executable path |
+| `PI_VISION_MODEL` | `gpt-5.6-luna` | Codex model used for image analysis |
+| `PI_VISION_EFFORT` | `low` | Reasoning effort |
+| `PI_VISION_TIMEOUT_MS` | `180000` | Per-call timeout in milliseconds |
+| `PI_VISION_CODEX` | `codex` | Codex executable |
 | `PI_VISION_HOME` | `~/.codex/vision` | Delegate `CODEX_HOME` |
 
-## Isolation boundaries
+## Development
 
-The extension deliberately avoids inheriting the normal Codex project environment:
+Clone the repository and install the checkout directly:
 
-- Dedicated `CODEX_HOME`: no normal `config.toml`, user `AGENTS.md`, enabled plugins, hooks, or MCP configuration.
-- Fresh empty cwd plus `--skip-git-repo-check`: no repository context or project `AGENTS.md` is loaded from the caller's repo.
-- `--ephemeral`: no delegated session is persisted.
-- `-s read-only`: the delegated Codex run is sandboxed read-only.
-- `OPENAI_API_KEY` and `CODEX_API_KEY` are removed from the child environment so the existing ChatGPT/Codex auth file is used.
-- The temporary cwd is deleted after the call.
-
-Two boundaries are intentionally shared:
-
-- `~/.codex/auth.json` is symlinked rather than copied so normal token refresh continues to work.
-- Codex can discover shared skills under `~/.agents/skills/`, which sits outside `CODEX_HOME`. They were observed during verification but are not required by the vision tool.
-
-## Verified behavior
-
-The extension has been exercised end-to-end from a real Pi session using a text-only primary model:
-
-```text
-Pi model -> vision tool -> isolated Codex delegate -> image description -> Pi model
+```bash
+git clone https://github.com/itsmeares/pi-vision.git
+cd pi-vision
+pi install "$PWD"
 ```
 
-The verification covered a real PNG, missing-file handling, non-image rejection, cancellation, and delegate cleanup.
-
-## Repository layout
+The extension implementation is a single file:
 
 ```text
-.pi/extensions/delegated-vision.ts  # extension implementation
-package.json                        # Pi package manifest
-README.md                           # installation and behavior
-plan/                               # original implementation/design notes
+.pi/extensions/delegated-vision.ts
 ```
+
+## License
+
+MIT
