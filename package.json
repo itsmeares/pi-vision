@@ -1,13 +1,32 @@
 {
-  "name": "pi-vision",
+  "name": "@itsmeares/pi-vision",
   "version": "0.1.0",
-  "description": "Delegated vision tool for Pi: keep the primary model text-only and analyze local images through an isolated Codex CLI delegate.",
+  "description": "Delegated vision for text-only Pi models through an isolated Codex CLI worker.",
+  "license": "MIT",
+  "author": "itsmeares",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsmeares/pi-vision.git"
+  },
+  "homepage": "https://github.com/itsmeares/pi-vision#readme",
+  "bugs": {
+    "url": "https://github.com/itsmeares/pi-vision/issues"
+  },
   "keywords": [
     "pi-package",
     "pi-extension",
+    "pi",
     "vision",
-    "codex"
+    "codex",
+    "image-analysis",
+    "text-only"
   ],
+  "files": [
+    ".pi/extensions/delegated-vision.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "pi": {
     "extensions": [
       "./.pi/extensions/delegated-vision.ts"
