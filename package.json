@@ -1,0 +1,20 @@
+{
+  "name": "pi-vision",
+  "version": "0.1.0",
+  "description": "Delegated vision tool for Pi: keep the primary model text-only and analyze local images through an isolated Codex CLI delegate.",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "vision",
+    "codex"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/delegated-vision.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}
